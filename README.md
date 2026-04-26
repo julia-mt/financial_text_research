@@ -1,5 +1,9 @@
 # Financial Text Alpha Research
 
+### Note: 
+
+This project is actively in development. The core data pipeline (transcript parsing, feature construction, and CRSP alignment) is implemented. Ongoing work focuses on refining the backtesting framework, expanding the dataset, and conducting robustness checks.
+
 ## Introduction
 
 This project investigates whether linguistic signals from earnings call transcripts can predict future stock returns.
