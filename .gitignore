@@ -2,14 +2,28 @@
 *.parquet
 *.csv
 *.xlsx
+*.json
 
 # credentials
 .pgpass
 *.env
+.env.*
 
 # jupyter checkpoints
 .ipynb_checkpoints/
+*.ipynb_checkpoints
 
 # python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# os files
+.DS_Store        # mac
+Thumbs.db        # windows
+
+# data folders
+data/
+raw/
+output/
