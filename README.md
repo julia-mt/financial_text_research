@@ -1,123 +1,73 @@
 # Financial Text Alpha Research
 
-### Note: 
+> **Status:** Core pipeline implemented. Preliminary results show statistically significant return predictability from Q&A sentiment (p=0.048, Newey-West adjusted).
 
-This project is actively in development. The core data pipeline (transcript parsing, feature construction, and CRSP alignment) is implemented. Ongoing work focuses on refining the backtesting framework, expanding the dataset, and conducting robustness checks.
+---
 
 ## Introduction
-
-This project investigates whether linguistic signals from earnings call transcripts can predict future stock returns.
-
-Structured features are extracted from transcripts (e.g., sentiment, disagreement, Q&A pressure) and tested for their predictive power using CRSP return data.
-
-The goal is to move beyond simple NLP and evaluate whether language contains economically meaningful signals.
+This project investigates whether linguistic signals from earnings call transcripts can predict future stock returns. Structured NLP features are extracted from earnings calls and tested for predictive power using CRSP return data. The focus is on the unscripted Q&A section of earnings calls, where analyst tone provides a more informative signal than prepared executive remarks.
 
 ---
 
-## Data Sources
-
-* **Earnings Call Transcripts**
-
-  * Earnings call transcripts are obtained via Refinitiv and used to construct structured NLP features at the event level.
-
-* **CRSP Daily Stock Data**
-
-  * Returns (`dlyret`), prices, volume, shares outstanding
-
-* **CRSP Index Data**
-
-  * Value-weighted market returns (`vwretd`)
-
-* **CRSP Names Table**
+## Preliminary Results
+- Long-short portfolio based on Q&A sentiment generates 77bps mean monthly spread (p=0.048)
+- Effect strengthens over longer horizons (1d vs. 10d), consistent with slow information diffusion
+- Monotonic return pattern across sentiment quintiles confirms signal robustness
 
 ---
 
+## Data
+Raw data not included. Available via WRDS academic license:
+
+| Source | Description | WRDS Table |
+|--------|-------------|------------|
+| Capital IQ | Earnings call transcripts | `ciq.wrds_transcript_detail` |
+| CRSP | Daily stock returns, price, volume | `crsp.dsf_v2` |
+| CRSP | Value-weighted market returns | `crsp.dsi` |
+| CRSP | S&P 500 constituent history | `crsp.msp500list` |
+
+Universe: S&P 500 constituents, 2020-2024
+
+---
 ## Pipeline
 
-### 1. Transcript Indexing
-
-Parse filenames to extract:
-
-* ticker
-* event date
-* file path
-
----
+### 1. Data Collection
+Earnings call transcripts pulled from WRDS Capital IQ (`ciq.wrds_transcript_detail`). Universe filtered to S&P 500 constituents via `crsp.msp500list` linked through the CCM linking table.
 
 ### 2. Text Processing
-
-Convert raw transcripts into structured speaker-level data:
-
-* speaker
-* role (Executive / Analyst)
-* section (presentation / Q&A)
-* text
-
----
+Raw transcript components parsed into structured speaker-level records:
+- Speaker name and role (Executive / Analyst)
+- Section (Presentation / Q&A)
+- Component text
 
 ### 3. Feature Engineering
+NLP features computed using FinBERT at the speaker level then aggregated to event level.
 
-Several NLP-based features are computed:
+### 4. CRSP Alignment
+Company identifiers mapped from Capital IQ `companyid` to Compustat `gvkey` and CRSP `permno` via the CCM linking table. 
 
-* **Executive Sentiment**
-* **Analyst Sentiment**
-* **Sentiment Gap** (exec − analyst)
-* **Dispersion** (std of sentiment)
-* **Q&A Pressure** (analyst tone in Q&A)
+### 5. Return Construction
+Cumulative abnormal returns (CAR) constructed at multiple horizons:
+- Market-adjusted using value-weighted market return (`vwretd`)
+- Horizons: 1d, 3d, 5d, 10d post earnings call
 
-Sentiment is computed using **FinBERT**
-
----
-
-### 4. Aggregation (Event-Level)
-
-Speaker-level data is aggregated to text, ticker and date.
-
----
-
-### 5. CRSP
-
-Tickers are mapped to PERMNO using the CRSP names table.
-
----
-
-### 6. Return Construction
-
-Forward returns:
-
-* **1-day return**:
-
-* **5-day return**
-
----
-
-### Backtest:
-
-The predictive power of NLP-derived features is evaluated using a cross-sectional, event-driven backtest.
-Stocks are sorted into quantiles based on each signal, and long–short portfolios are constructed to 
-measure return spreads over future horizons. Performance is assessed through time-series returns, 
-statistical significance, and market-adjusted metrics.
-
----
-
-## Results
-
-Most predictive power comes from:
-
-* disagreement (sentiment gap)
-* uncertainty (dispersion, Q&A pressure)
+### 6. Backtest
+Stocks sorted into quintiles by signal each month. Long-short portfolio constructed going long low-sentiment quintile and short high-sentiment quintile. Performance evaluated using time-series returns, Newey-West adjusted t-tests, and Sharpe ratio.
 
 ---
 
 ## Tech Stack
-
-* Python (pandas, numpy)
-* PyTorch (FinBERT)
-* WRDS (CRSP data)
-* Regex-based NLP preprocessing
+- Python (pandas, numpy, statsmodels)
+- PyTorch + HuggingFace (FinBERT)
+- WRDS (CRSP + Capital IQ)
 
 ---
 
-## Disclaimer
+## Limitations
+- Sample covers 66 S&P 500 companies — full universe validation pending
+- Returns are gross of transaction costs
+- Not adjusted for Fama-French risk factors
 
-This project is for research purposes only.
+---
+
+*For research purposes only. Raw data not redistributed.*
